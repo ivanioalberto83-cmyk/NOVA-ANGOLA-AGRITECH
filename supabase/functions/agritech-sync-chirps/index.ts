@@ -27,7 +27,7 @@ function parseLinks(html: string, current: URL): URL[] {
   const seen = new Set<string>();
   for (const match of html.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
     const href = match[1];
-    if (!href || href.startsWith(("#", "?", "mailto:", "javascript:")) || href === "../") continue;
+    if (!href || ["#", "?", "mailto:", "javascript:"].some((prefix) => href.startsWith(prefix)) || href === "../") continue;
     let url: URL;
     try { url = new URL(href, current); } catch { continue; }
     if (!safePath(url) || seen.has(url.href) || url.href === current.href) continue;
