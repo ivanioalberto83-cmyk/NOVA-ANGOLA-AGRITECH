@@ -44,6 +44,12 @@ create table if not exists angola_agritech.rainfall_grid_summaries (
   period_end date not null,
   constraint rainfall_grid_summaries_period_check
     check (period_end >= period_start),
+  constraint rainfall_grid_summaries_family_resolution_check
+    check (
+      (product_family in ('final_pentad', 'preliminary_pentad') and temporal_resolution = 'pentad') or
+      (product_family = 'final_monthly' and temporal_resolution = 'monthly') or
+      (product_family in ('daily_rnl', 'daily_sat') and temporal_resolution = 'daily')
+    ),
 
   source_asset_uri text not null,
   source_checksum text not null,
