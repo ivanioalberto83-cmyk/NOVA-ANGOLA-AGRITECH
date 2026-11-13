@@ -16,6 +16,7 @@ let activeModule = 'national';
 let provinceBoundaryLayer = null;
 let nationalBoundaryLayer = null;
 let selectedProvinceName = 'Malanje';
+let chirpsBusy = false;
 
 const provinces = [
   'Bengo','Benguela','Bié','Cabinda','Cuando','Cubango','Cuanza-Norte','Cuanza-Sul',
@@ -118,6 +119,7 @@ function renderDashboard(error='') {
     <main class="workspace">
       <div class="page-head"><div><div class="eyebrow">NOVA ANGOLA AGRITECH / ${activeTitle.toUpperCase()}</div><h1>Centro Nacional de Inteligência Agrícola</h1><p>Monitorização geoespacial, climática e ambiental para apoio à decisão.</p></div><div class="head-actions"><span class="data-clock">Actualizado: ${data.generated_at?new Date(data.generated_at).toLocaleString('pt-PT'):'—'}</span><button id="refresh" class="secondary" ${busy?'disabled':''}>${busy?'A actualizar…':'↻ Actualizar dados'}</button></div></div>
       ${error?`<div class="error-banner">${esc(error)}</div>`:''}
+      <section class="data-panel" style="margin-bottom:18px"><div class="panel-title"><strong>Validação da fonte CHIRPS v3</strong><button id="test-chirps" class="secondary" ${chirpsBusy?'disabled':''}>${chirpsBusy?'A validar…':'Testar produtos finais'}</button></div><p class="muted">Inspecção autenticada dos produtos finais mensal e pentad. Apenas metadados HTTP; sem descarregar rasters ou alterar a base de dados.</p><pre id="chirps-result" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#52645a">Ainda não testado nesta sessão.</pre></section>
       <section class="filter-bar"><div><small>ESCALA TERRITORIAL</small><select id="province-filter"><option value="Angola">Angola · Nacional</option>${provinces.map(p=>`<option value="${p}" ${p==='Malanje'?'selected':''}>${p}</option>`).join('')}</select></div><div><small>PROJECTO-PILOTO</small><strong>Malanje · Mandioca</strong></div><div><small>PERÍODO CLIMÁTICO</small><strong>Últimos 30 dias</strong></div><div class="filter-state"><span class="live-dot"></span> Fontes identificadas</div></section>
       <section class="metrics-grid">
         ${metric('CENAS / CANDIDATOS REGISTADOS',fmt(pilot.scene_candidates_registered,0),'','Registo Sentinel-2 do piloto')}
@@ -151,6 +153,7 @@ function renderDashboard(error='') {
   </div>`);
   document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;renderLogin();});
   document.querySelector('#refresh').addEventListener('click',loadDashboard);
+  document.querySelector('#test-chirps').addEventListener('click',runChirpsDiagnostics);
   document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
   document.querySelector('#province-filter').addEventListener('change',e=>selectProvinceOnMap(e.target.value));
   initMap(pilot);
@@ -227,6 +230,45 @@ async function initMap(pilot) {
   L.circleMarker(center,{radius:7,color:'#fff',weight:2,fillColor:'#f4b942',fillOpacity:1}).addTo(map).bindPopup('<b>NAAT-MAL-CASSAVA-001</b><br>Centro aproximado da área de interesse.');
   L.control.scale({imperial:false}).addTo(map);
   setTimeout(()=>map.invalidateSize(),250);
+}
+async function runChirpsDiagnostics() {
+  if(chirpsBusy)return;
+  chirpsBusy=true;
+  const button=document.querySelector('#test-chirps');
+  const output=document.querySelector('#chirps-result');
+  if(button){button.disabled=true;button.textContent='A validar…';}
+  if(output)output.textContent='A confirmar sessão e a consultar os dois produtos finais CHIRPS…';
+  try {
+    const {data:sessionData,error:sessionError}=await supabase.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!sessionData.session)throw new Error('Sessão não encontrada. Termina e volta a iniciar sessão.');
+    const checks=[
+      ['final_monthly',{action:'inspect_final_monthly',period:'2026-09'}],
+      ['final_pentad_6',{action:'inspect_final_pentad',period:'2026-09',pentad:6}]
+    ];
+    const results={};
+    for(const [name,body] of checks){
+      const {data,error}=await supabase.functions.invoke('agritech-sync-chirps',{body});
+      if(error){
+        let detail={message:error.message,status:error.context?.status||null};
+        try{if(error.context?.json)detail=await error.context.json();}catch{}
+        results[name]={ok:false,error:detail};
+      } else {
+        results[name]=data;
+      }
+    }
+    chirpsBusy=false;
+    if(output)output.textContent=JSON.stringify(results,null,2);
+    if(button){button.disabled=false;button.textContent='Repetir validação';}
+    const monthly=results.final_monthly?.ok===true;
+    const pentad=results.final_pentad_6?.ok===true;
+    showToast(monthly&&pentad?'CHIRPS autenticado: mensal e pentad confirmados.':'Diagnóstico concluído. Mensal: '+(monthly?'OK':'por verificar')+' · Pentad: '+(pentad?'OK':'por verificar')+'.');
+  } catch(e) {
+    chirpsBusy=false;
+    if(output)output.textContent=String(e.message||e);
+    if(button){button.disabled=false;button.textContent='Repetir validação';}
+    showToast('Não foi possível executar o diagnóstico CHIRPS.');
+  }
 }
 async function loadDashboard() {
   if(busy)return;
