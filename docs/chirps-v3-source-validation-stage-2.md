@@ -1,46 +1,74 @@
 # CHIRPS v3 source validation — stage 2
 
 **Branch:** `feature/national-agritech-command-center`  
-**Status:** implementation updated; runtime source check not yet executed; not deployed.
+**Status:** monthly and pentad archive paths confirmed from live official CHC directory indexes; metadata-only inspection implemented in GitHub; runtime Edge Function check and raster-header inspection remain pending; not deployed.
 
-## Confirmed monthly candidate path
+## Confirmed final monthly source
 
-The monthly GeoTIFF convention used by the downloader reference is:
+Official directory:
 
-`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs/chirps-v3.0.YYYY.MM.tif`
+`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs/`
 
-Example candidate for October 2026:
+The live index advertises:
 
-`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs/chirps-v3.0.2026.10.tif`
+`chirps-v3.0.2026.09.tif`
 
-The function now performs a metadata-only HTTP HEAD request for a requested month. If the archive responds with 405/501, it falls back to a one-byte Range request and cancels the response body. It does not download the raster.
+Candidate URL:
 
-## Pentad source path — deliberately pending
+`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs/chirps-v3.0.2026.09.tif`
 
-The scientific description confirms CHIRPS v3 is calculated at pentadal and monthly scales, but the exact final-pentad directory and file naming convention on the official v3 archive have not yet been independently confirmed from an official CHC index/README. A legacy USGS mirror is not sufficient evidence to hard-code the official CHC source path.
+Filename convention: `chirps-v3.0.YYYY.MM.tif`.
 
-Therefore the Edge Function currently exposes only `inspect_final_monthly`. It does not guess a pentad URL or mix in CHIRPS v2 / other mirrors. Add pentad discovery only after confirming the official v3 path and a real asset.
+The CHC README says final CHIRPS products are typically complete during the third week of the following month. On 2026-11-13, September 2026 is the latest confirmed completed monthly candidate in the fetched directory listing; October 2026 must not be assumed final yet.
+
+## Confirmed final pentad source
+
+Official directory:
+
+`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/pentads/global/tifs/`
+
+The live index advertises the 2026 pentad files through:
+
+`chirps-v3.0.2026.09.6.tif`
+
+Candidate URL:
+
+`https://data.chc.ucsb.edu/products/CHIRPS/v3.0/pentads/global/tifs/chirps-v3.0.2026.09.6.tif`
+
+Filename convention: `chirps-v3.0.YYYY.MM.N.tif`, where N is 1–6. Pentad windows are treated as days 1–5, 6–10, 11–15, 16–20, 21–25 and 26–month-end. The sixth window therefore varies in length.
+
+## Edge Function changes prepared
+
+`supabase/functions/agritech-sync-chirps/index.ts` now supports:
+- `inspect_final_monthly` with `period: YYYY-MM`;
+- `inspect_final_pentad` with `period: YYYY-MM` and `pentad: 1..6`;
+- fixed official CHC source paths and generated filenames (no caller-supplied URL);
+- authenticated Supabase user validation;
+- metadata-only HEAD request, with one-byte Range fallback for HTTP 405/501;
+- response fields for HTTP status, content type, content length, total size when available, ETag, Last-Modified and range support.
+
+The function does not download full rasters, inspect TIFF internals, process pixels, write Storage/database rows or change schema.
+
+## Remaining validation gates
+
+1. Run the function against monthly `2026-09` and pentad `2026-09`, `pentad=6`.
+2. Record actual HTTP response metadata from the function runtime.
+3. Inspect GeoTIFF signature, CRS, transform, dimensions, bounds, band count, dtype, NoData, scale/offset and units.
+4. Read a bounded window intersecting the provisional Malanje AOI; verify valid/NoData counts and plausible precipitation values.
+5. Keep final monthly and final pentad as separate time series. Do not merge preliminary or daily `rnl` / `sat` products.
+6. Only implement persistence after a separate review and explicit approval of the schema/security plan.
 
 ## Safety and limits
 
-- Authenticated Supabase user required.
-- Request action and period are allow-listed.
-- HTTPS host is fixed to `data.chc.ucsb.edu`; callers cannot supply URLs.
-- No raster download, pixel processing, Storage upload, table write, migration, or deployment.
-- The Malanje AOI remains provisional; no farm-level claim is permitted.
-
-## Next validation gates
-
-1. Invoke against a known completed month, e.g. `2026-10`.
-2. Record HTTP status, content type, length, ETag and Last-Modified.
-3. If the asset exists, use a raster-aware environment to inspect CRS, transform, dimensions, NoData, band and units.
-4. Independently confirm the official final-pentad directory and a real period file.
-5. Only then implement bounded AOI window processing and reproducible summaries.
+- No Supabase function has been deployed.
+- No Supabase schema, row, Storage object, secret or production setting has been changed.
+- No paid branch or upgrade has been created.
+- The Malanje pilot AOI remains provisional and is not a verified cassava parcel.
 
 ## References
 
-- CHC CHIRPS v3 overview: https://www.chc.ucsb.edu/data/chirps3
-- CHC v3 README: https://data.chc.ucsb.edu/products/CHIRPS/v3.0/README-CHIRPSv3.0.txt
-- CHC v3 archive: https://data.chc.ucsb.edu/products/CHIRPS/v3.0/
-- Public downloader reference for monthly path convention: https://waterinag.github.io/Data4WA/datasets/pcp_chirps/
+- CHC CHIRPS v3 README: https://data.chc.ucsb.edu/products/CHIRPS/v3.0/README-CHIRPSv3.0.txt
+- CHC final monthly GeoTIFF index: https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs/
+- CHC final pentad GeoTIFF index: https://data.chc.ucsb.edu/products/CHIRPS/v3.0/pentads/global/tifs/
+- CHC downloader reference: https://github.com/chc-ucsb/chc-data-download
 - CHIRPS v3 paper: https://doi.org/10.1038/s41597-026-07096-4
