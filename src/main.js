@@ -157,7 +157,7 @@ function renderDashboard(error='') {
 }
 function showToast(message){const el=document.querySelector('#toast');if(el){el.textContent=message;el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),5000);}}
 function normalizeProvinceName(value='') {
-  return String(value).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 }
 function selectProvinceOnMap(name) {
   const map=window.agritechMap;
@@ -212,8 +212,8 @@ async function initMap(pilot) {
       style:feature=>({color:'#dce8d0',weight:1.3,fillColor:'#7f9b6b',fillOpacity:.10}),
       onEachFeature:(feature,layer)=>{
         const provinceName=feature.properties?.Nome_Prov||'Província sem nome';
-        layer.bindPopup('<b>'+String(provinceName).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c]))+'</b><br>Divisão administrativa de referência · Lei 14/24');
-        layer.on({click:()=>selectProvinceOnMap(provinceName),mouseover:()=>{if(normalizeProvinceName(selectedProvinceName)!==normalizeProvinceName(provinceName))layer.setStyle({weight:2,fillOpacity:.22});},mouseout:()=>provinceBoundaryLayer?.resetStyle(layer)});
+        layer.bindPopup('<b>'+esc(provinceName)+'</b><br>Divisão administrativa de referência · Lei 14/24');
+        layer.on({click:()=>selectProvinceOnMap(provinceName),mouseover:()=>{if(normalizeProvinceName(selectedProvinceName)!==normalizeProvinceName(provinceName))layer.setStyle({weight:2,fillOpacity:.22});},mouseout:()=>layer.setStyle({color:'#dce8d0',weight:normalizeProvinceName(selectedProvinceName)===normalizeProvinceName(provinceName)?2:1.3,fillColor:normalizeProvinceName(selectedProvinceName)===normalizeProvinceName(provinceName)?'#f4b942':'#7f9b6b',fillOpacity:normalizeProvinceName(selectedProvinceName)===normalizeProvinceName(provinceName)?0.42:0.10})});
       }
     }).addTo(map);
     if(provincesGeoJSON.features.length===21)selectProvinceOnMap('Malanje');
