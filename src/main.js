@@ -34,7 +34,7 @@ const modules = [
 
 const icon = '<span class="brand-mark">N<span>+</span></span>';
 const esc = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = (v, digits=2) => v === null || v === undefined || !Number.isFinite(Number(v)) ? '—' : Number(v).toLocaleString('pt-PT',{maximumFractionDigits:digits});
+const fmt = (v, digits=2) => v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? '—' : Number(v).toLocaleString('pt-PT',{maximumFractionDigits:digits});
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}) : '—';
 
 function shell(content) {
