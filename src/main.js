@@ -13,6 +13,9 @@ let session = null;
 let busy = false;
 let dashboardData = null;
 let activeModule = 'national';
+let provinceBoundaryLayer = null;
+let nationalBoundaryLayer = null;
+let selectedProvinceName = 'Malanje';
 
 const provinces = [
   'Bengo','Benguela','Bié','Cabinda','Cuando','Cubango','Cuanza-Norte','Cuanza-Sul',
@@ -130,7 +133,7 @@ function renderDashboard(error='') {
           <div class="map-stat"><span>Limites administrativos</span><b>21 províncias · pendente</b></div>
           <div class="map-warning">A área assinalada é uma caixa geográfica provisória. Não representa uma parcela agrícola validada.</div>
           <div class="map-legend"><span><i class="legend-dot"></i> Centro aproximado do piloto</span><span><i class="legend-box"></i> AOI provisória</span></div>
-          <div class="map-source">Cartografia nacional: geoBoundaries ADM0 · contorno nacional. A camada ADM1 aberta consultada representa 18 províncias (2021) e não foi usada como divisão actual.</div>
+          <div class="map-source">Limites provinciais de referência: serviço cartográfico ArcGIS baseado na Lei n.º 14/24 (publicado em 2025). A fonte é externa e carece de validação oficial antes de uso cadastral. Contorno nacional: geoBoundaries ADM0.</div>
         </div></div>
       </section>
       <section class="section-block" id="climate"><div class="section-heading"><div><div class="eyebrow">OBSERVAÇÕES ATMOSFÉRICAS</div><h2>Clima e meteorologia</h2><p>Série diária de precipitação, temperatura, humidade e vento.</p></div><span class="source-badge">NASA POWER</span></div><div class="data-panel">${weatherPanel(weather)}</div></section>
@@ -149,14 +152,37 @@ function renderDashboard(error='') {
   document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;renderLogin();});
   document.querySelector('#refresh').addEventListener('click',loadDashboard);
   document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
-  document.querySelector('#province-filter').addEventListener('change',e=>{if(e.target.value!=='Angola'&&e.target.value!=='Malanje'){showToast('Os limites oficiais das 21 províncias ainda não estão carregados. O mapa mantém a cartografia nacional e o piloto de Malanje.');}else if(e.target.value==='Malanje'){window.agritechMap?.setView([-9.5,16.35],8);}});
+  document.querySelector('#province-filter').addEventListener('change',e=>selectProvinceOnMap(e.target.value));
   initMap(pilot);
 }
 function showToast(message){const el=document.querySelector('#toast');if(el){el.textContent=message;el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),5000);}}
+function normalizeProvinceName(value='') {
+  return String(value).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function selectProvinceOnMap(name) {
+  const map=window.agritechMap;
+  if(!map)return;
+  selectedProvinceName=name;
+  const selector=document.querySelector('#province-filter');
+  if(selector&&selector.value!==name)selector.value=name;
+  if(name==='Angola'){
+    if(nationalBoundaryLayer)map.fitBounds(nationalBoundaryLayer.getBounds(),{padding:[20,20]});
+    else map.setView([-11.8,17.8],5);
+    provinceBoundaryLayer?.setStyle(feature=>({color:'#dce8d0',weight:1.3,fillColor:normalizeProvinceName(feature.properties?.Nome_Prov)===normalizeProvinceName(selectedProvinceName)?'#f4b942':'#7f9b6b',fillOpacity:normalizeProvinceName(feature.properties?.Nome_Prov)===normalizeProvinceName(selectedProvinceName)?0.35:0.10}));
+    return;
+  }
+  const feature=(provinceBoundaryLayer?.getLayers()||[]).find(layer=>normalizeProvinceName(layer.feature?.properties?.Nome_Prov)===normalizeProvinceName(name));
+  if(!feature){showToast('O limite cartográfico de '+name+' não foi encontrado na fonte carregada.');return;}
+  provinceBoundaryLayer.setStyle(layer=>({color:'#dce8d0',weight:1.3,fillColor:normalizeProvinceName(layer.feature?.properties?.Nome_Prov)===normalizeProvinceName(name)?'#f4b942':'#7f9b6b',fillOpacity:normalizeProvinceName(layer.feature?.properties?.Nome_Prov)===normalizeProvinceName(name)?0.42:0.10}));
+  map.fitBounds(feature.getBounds(),{padding:[28,28],maxZoom:9});
+  feature.openPopup();
+}
 async function initMap(pilot) {
   const node=document.querySelector('#angola-map');
   if(!node||!window.L)return;
   if(window.agritechMap){window.agritechMap.remove();window.agritechMap=null;}
+  provinceBoundaryLayer=null;
+  nationalBoundaryLayer=null;
   const L=window.L;
   const map=L.map(node,{zoomControl:true,scrollWheelZoom:false}).setView([-11.8,17.8],5);
   window.agritechMap=map;
@@ -171,10 +197,29 @@ async function initMap(pilot) {
     const geoResponse=await fetch(meta.gjDownloadURL);
     if(!geoResponse.ok)throw new Error('National geometry unavailable');
     const geo=await geoResponse.json();
-    const boundary=L.geoJSON(geo,{style:{color:'#d7e8b2',weight:2,fillColor:'#8cae6b',fillOpacity:.08}}).addTo(map);
-    map.fitBounds(boundary.getBounds(),{padding:[18,18]});
+    nationalBoundaryLayer=L.geoJSON(geo,{style:{color:'#d7e8b2',weight:2,fillColor:'#8cae6b',fillOpacity:.035}}).addTo(map);
+    map.fitBounds(nationalBoundaryLayer.getBounds(),{padding:[18,18]});
   } catch(e) {
     L.rectangle([[-18.1,11.6],[-4.3,24.1]],{color:'#a7c878',weight:1,dashArray:'5 6',fillOpacity:0.02}).addTo(map);
+  }
+  try {
+    const endpoint='https://services.arcgis.com/uHAHKfH1Z5ye1Oe0/ArcGIS/rest/services/Nova_Divisao_Administrativa_de_Angola_WFL1/FeatureServer/1/query?where=1%3D1&outFields=FID%2CNome_Prov%2CCod_Alfa_P%2CCod_Prov&returnGeometry=true&outSR=4326&f=geojson';
+    const response=await fetch(endpoint);
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const provincesGeoJSON=await response.json();
+    if(!Array.isArray(provincesGeoJSON.features)||provincesGeoJSON.features.length!==21)throw new Error('A camada não devolveu exactamente 21 províncias.');
+    provinceBoundaryLayer=L.geoJSON(provincesGeoJSON,{
+      style:feature=>({color:'#dce8d0',weight:1.3,fillColor:'#7f9b6b',fillOpacity:.10}),
+      onEachFeature:(feature,layer)=>{
+        const provinceName=feature.properties?.Nome_Prov||'Província sem nome';
+        layer.bindPopup('<b>'+String(provinceName).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c]))+'</b><br>Divisão administrativa de referência · Lei 14/24');
+        layer.on({click:()=>selectProvinceOnMap(provinceName),mouseover:()=>{if(normalizeProvinceName(selectedProvinceName)!==normalizeProvinceName(provinceName))layer.setStyle({weight:2,fillOpacity:.22});},mouseout:()=>provinceBoundaryLayer?.resetStyle(layer)});
+      }
+    }).addTo(map);
+    if(provincesGeoJSON.features.length===21)selectProvinceOnMap('Malanje');
+  } catch(error) {
+    console.error('Falha ao carregar limites provinciais:',error);
+    showToast('Não foi possível carregar os limites provinciais. O mapa nacional continua disponível.');
   }
   const bbox=Array.isArray(pilot.aoi_bbox)?pilot.aoi_bbox:[16.1,-9.7,16.6,-9.3];
   const center=[(Number(bbox[1])+Number(bbox[3]))/2,(Number(bbox[0])+Number(bbox[2]))/2];
