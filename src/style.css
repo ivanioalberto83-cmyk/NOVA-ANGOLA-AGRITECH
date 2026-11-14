@@ -40,3 +40,14 @@
 .emergency-agencies b{font-weight:800}
 .emergency-agencies span{color:#89958b}
 @media(max-width:420px){.emergency-grid{grid-template-columns:1fr}.emergency-contact{padding:10px 12px}}
+
+/* National institutional registry */
+.institution-category-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin:14px 0}
+.institution-category-card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 14px;min-width:0}
+.institution-category-card span{font-size:10px;line-height:1.4;color:#617165}
+.institution-category-card strong{font:800 19px Manrope;color:#244632}
+.institution-status{display:inline-block;border-radius:20px;padding:5px 8px;font-size:9px;font-weight:700;white-space:nowrap;background:#f3f5f2;color:#657166}
+.institution-status.status-proposed{background:#fff5e5;color:#8a6425;border:1px solid #f0dfbf}
+.institution-status.status-under_review{background:#eef4fb;color:#4b6685;border:1px solid #dce7f3}
+.institution-status.status-verified,.institution-status.status-approved{background:#eff7e9;color:#426b3d;border:1px solid #dcebd0}
+.institution-status.status-inactive,.institution-status.status-rejected{background:#f8eeee;color:#8a4d4d;border:1px solid #efdada}
