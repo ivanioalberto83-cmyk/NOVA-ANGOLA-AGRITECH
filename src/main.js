@@ -55,13 +55,33 @@ function shell(content) {
 function renderSetup() {
   shell(`<main class="auth-wrap"><section class="auth-card"><div class="eyebrow">CONFIGURAÇÃO NECESSÁRIA</div><h1>Preparar ligação segura</h1><p>Configura as variáveis públicas do projecto Vercel para ligar esta aplicação ao Supabase.</p><div class="config-item">VITE_SUPABASE_URL <code>https://rojyxfjaidyvtmsmefcf.supabase.co</code></div><div class="config-item">VITE_SUPABASE_ANON_KEY <code>Chave publishable/anon do projecto UNIVERSO NOVA</code></div><p class="muted">Não coloques aqui o CDSE Client Secret nem a chave service_role.</p></section></main>`);
 }
+async function loadPublicEmergencyDirectory() {
+  const target = document.querySelector('#public-emergency-directory');
+  if (!target || !supabase) return;
+  try {
+    const { data, error } = await supabase.functions.invoke('agritech-public-emergency-directory', { body: {} });
+    if (error) throw error;
+    const contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+    const institutions = Array.isArray(data?.institutions) ? data.institutions : [];
+    target.innerHTML = `
+      <div class="emergency-heading"><div><small>ACESSO PÚBLICO · ANGOLA</small><h2>Contactos de emergência</h2></div><span>DIRECTÓRIO NACIONAL</span></div>
+      <div class="emergency-grid">${contacts.map(c => `<a class="emergency-contact" href="tel:${esc(c.dial_number)}"><span>${esc(c.service_name)}</span><strong>${esc(c.dial_number)}</strong></a>`).join('')}</div>
+      <p class="emergency-warning">${esc(data?.warning || 'A disponibilidade operacional deve ser confirmada junto das autoridades competentes.')}</p>
+      <div class="emergency-agencies"><b>Entidades no cadastro institucional</b><span>${institutions.map(i => esc(i.name) + ' · ' + esc(i.integration_status.replaceAll('_',' '))).join(' | ')}</span></div>`;
+    if (!contacts.length) target.innerHTML = '<p class="muted">Não existem contactos públicos publicados.</p>';
+  } catch (error) {
+    target.innerHTML = '<p class="muted">O directório público não está disponível neste momento. Em caso de emergência, utiliza os canais oficiais conhecidos da tua região.</p>';
+  }
+}
+
 function renderLogin(message='') {
   shell(`<main class="auth-wrap"><section class="auth-card">
     <div class="eyebrow">ACESSO SEGURO · UNIVERSO NOVA</div><h1>Inteligência agrícola para Angola.</h1>
     <p>Entra para consultar dados de satélite, clima e monitorização do projecto-piloto.</p>
     <form id="login-form"><label>Email</label><input name="email" type="email" autocomplete="username" required value="ivanioalberto83@gmail.com"/><label>Palavra-passe</label><input name="password" type="password" autocomplete="current-password" required placeholder="A tua palavra-passe NOVA"/><button class="primary" type="submit" ${busy?'disabled':''}>${busy?'A autenticar…':'Entrar na plataforma'} <span>→</span></button></form>
-    <p class="form-message">${esc(message)}</p><div class="secure-note">▣ Sessão Supabase segura · JWT obrigatório · sem credenciais administrativas no navegador</div>
+    <p class="form-message">${esc(message)}</p><div class="secure-note">▣ Sessão Supabase segura · JWT obrigatório · sem credenciais administrativas no navegador</div><section id="public-emergency-directory" class="public-emergency"><p class="muted">A carregar contactos públicos…</p></section>
   </section></main>`);
+  loadPublicEmergencyDirectory();
   document.querySelector('#login-form').addEventListener('submit', async e => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
