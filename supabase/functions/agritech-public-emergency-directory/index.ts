@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
 
   const sql = postgres(dbUrl, { max: 1, connect_timeout: 10, idle_timeout: 5, prepare: false });
   try {
-    const [contacts, institutions] = await Promise.all([
+    const [contacts, institutions, localAdministrationSummary] = await Promise.all([
       sql`
         select c.service_code,c.service_name,c.service_category,c.dial_number,
           c.coverage_level,c.source_authority,c.source_reference,c.source_url,
@@ -39,7 +39,15 @@ Deno.serve(async (req: Request) => {
         select institution_code,name,institution_type,jurisdiction_level,
           integration_status,official_website,official_source_url,mandate_notes
         from angola_agritech.emergency_institutions
+        where jurisdiction_level='national'
         order by institution_type,name
+      `,
+      sql`
+        select
+          count(*) filter(where jurisdiction_level='provincial')::int as provincial_administrations,
+          count(*) filter(where jurisdiction_level='municipal')::int as municipal_administrations
+        from angola_agritech.emergency_institutions
+        where institution_type='local_administration'
       `
     ]);
     return json({
@@ -48,7 +56,11 @@ Deno.serve(async (req: Request) => {
       directory_status: "official_numbering_allocations_operational_status_unverified",
       warning: "Os números constam do Plano Nacional de Numeração. A disponibilidade operacional actual e a cobertura por rede/província ainda carecem de confirmação institucional.",
       contacts,
-      institutions
+      institutions,
+      local_administration_summary: localAdministrationSummary[0] ?? {
+        provincial_administrations: 0,
+        municipal_administrations: 0
+      }
     });
   } catch (error) {
     console.error("public emergency directory error", error);
