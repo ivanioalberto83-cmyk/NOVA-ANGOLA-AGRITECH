@@ -18,11 +18,7 @@ let nationalBoundaryLayer = null;
 let selectedProvinceName = 'Malanje';
 let chirpsBusy = false;
 
-const provinces = [
-  'Bengo','Benguela','Bié','Cabinda','Cuando','Cubango','Cuanza-Norte','Cuanza-Sul',
-  'Cunene','Huambo','Huíla','Icolo e Bengo','Luanda','Lunda-Norte','Lunda-Sul',
-  'Malanje','Moxico','Moxico Leste','Namibe','Uíge','Zaire'
-];
+let provinces = [];
 
 const modules = [
   ['national','⌂','Centro nacional'],
@@ -108,6 +104,7 @@ function weatherPanel(weather) {
 }
 function renderDashboard(error='') {
   const data=dashboardData||{};
+  provinces = (data.territory?.provinces || []).map(item => item.name);
   const pilot=data.pilot||{};
   const veg=data.vegetation||[];
   const latest=veg[0]||null;
@@ -120,7 +117,7 @@ function renderDashboard(error='') {
       <div class="page-head"><div><div class="eyebrow">NOVA ANGOLA AGRITECH / ${activeTitle.toUpperCase()}</div><h1>Centro Nacional de Inteligência Agrícola</h1><p>Monitorização geoespacial, climática e ambiental para apoio à decisão.</p></div><div class="head-actions"><span class="data-clock">Actualizado: ${data.generated_at?new Date(data.generated_at).toLocaleString('pt-PT'):'—'}</span><button id="refresh" class="secondary" ${busy?'disabled':''}>${busy?'A actualizar…':'↻ Actualizar dados'}</button></div></div>
       ${error?`<div class="error-banner">${esc(error)}</div>`:''}
       <section class="data-panel" style="margin-bottom:18px"><div class="panel-title"><strong>Validação da fonte CHIRPS v3</strong><button id="test-chirps" class="secondary" ${chirpsBusy?'disabled':''}>${chirpsBusy?'A validar…':'Testar produtos finais'}</button></div><p class="muted">Inspecção autenticada dos produtos finais mensal e pentad. Apenas metadados HTTP; sem descarregar rasters ou alterar a base de dados.</p><pre id="chirps-result" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#52645a">Ainda não testado nesta sessão.</pre></section>
-      <section class="filter-bar"><div><small>ESCALA TERRITORIAL</small><select id="province-filter"><option value="Angola">Angola · Nacional</option>${provinces.map(p=>`<option value="${p}" ${p==='Malanje'?'selected':''}>${p}</option>`).join('')}</select></div><div><small>PROJECTO-PILOTO</small><strong>Malanje · Mandioca</strong></div><div><small>PERÍODO CLIMÁTICO</small><strong>Últimos 30 dias</strong></div><div class="filter-state"><span class="live-dot"></span> Fontes identificadas</div></section>
+      <section class="filter-bar"><div><small>ESCALA TERRITORIAL</small><select id="province-filter"><option value="Angola">Angola · Nacional</option>${provinces.map(p=>`<option value="${p}" ${p===selectedProvinceName?'selected':''}>${p}</option>`).join('')}</select></div><div><small>PROJECTO-PILOTO</small><strong>Malanje · Mandioca</strong></div><div><small>PERÍODO CLIMÁTICO</small><strong>Últimos 30 dias</strong></div><div class="filter-state"><span class="live-dot"></span> Fontes identificadas</div></section>
       <section class="metrics-grid">
         ${metric('CENAS / CANDIDATOS REGISTADOS',fmt(pilot.scene_candidates_registered,0),'','Registo Sentinel-2 do piloto')}
         ${metric('NDVI MÉDIO · ÚLTIMA OBSERVAÇÃO',latest?fmt(latest.ndvi_mean,3):'—','',latest?`Aquisição ${dateLabel(latest.observed_at)}`:'Sem observação carregada','accent')}
@@ -132,7 +129,7 @@ function renderDashboard(error='') {
           <div class="map-aside-head"><small>LOCALIZAÇÃO EM FOCO</small><strong>Malanje</strong><span>Projecto-piloto · Mandioca</span></div>
           <div class="map-stat"><span>Identificador</span><b>NAAT-MAL-CASSAVA-001</b></div>
           <div class="map-stat"><span>Estado da AOI</span><b class="warning-text">${esc(pilot.aoi_status||'provisional')}</b></div>
-          <div class="map-stat"><span>Limites administrativos</span><b>21 províncias · pendente</b></div>
+          <div class="map-stat"><span>Limites administrativos</span><b>${fmt(data.territory?.province_count,0)} províncias · ${fmt(data.territory?.municipality_count,0)} municípios · ${fmt(data.territory?.commune_count,0)} comunas</b></div>
           <div class="map-warning">A área assinalada é uma caixa geográfica provisória. Não representa uma parcela agrícola validada.</div>
           <div class="map-legend"><span><i class="legend-dot"></i> Centro aproximado do piloto</span><span><i class="legend-box"></i> AOI provisória</span></div>
           <div class="map-source">Limites provinciais de referência: serviço cartográfico ArcGIS baseado na Lei n.º 14/24 (publicado em 2025). A fonte é externa e carece de validação oficial antes de uso cadastral. Contorno nacional: geoBoundaries ADM0.</div>
@@ -146,7 +143,14 @@ function renderDashboard(error='') {
       <section class="section-block" id="water"><div class="section-heading"><div><div class="eyebrow">RISCO HIDROCLIMÁTICO</div><h2>Seca e recursos hídricos</h2><p>Défice de precipitação, SPI, humidade do solo e balanço hídrico.</p></div><span class="status-chip muted-chip">EM PREPARAÇÃO</span></div><div class="data-panel placeholder-grid">${emptyState('Balanço hídrico ainda não calculado','É necessário histórico climático validado e dados de evapotranspiração/solo. A precipitação de 30 dias, isoladamente, não confirma seca.')}${emptyState('SPI ainda não disponível','O SPI exige uma série histórica suficientemente longa e uma escala temporal definida (por exemplo, SPI-3 ou SPI-6).')}</div></section>
       <section class="section-block" id="health"><div class="section-heading"><div><div class="eyebrow">VIGILÂNCIA FITOSSANITÁRIA</div><h2>Pragas e doenças</h2><p>Ocorrências, condições favoráveis e validação no terreno.</p></div><span class="status-chip muted-chip">SEM REGISTOS</span></div><div class="data-panel">${emptyState('Nenhuma ocorrência validada','Ainda não existem observações fitossanitárias registadas. Não serão emitidos alertas de pragas com base apenas em índices de satélite.')}</div></section>
       <section class="section-block" id="environment"><div class="section-heading"><div><div class="eyebrow">SISTEMAS TERRESTRES</div><h2>Solo e ambiente</h2><p>Humidade do solo, relevo, erosão, queimadas e uso do solo.</p></div><span class="status-chip muted-chip">CAMADAS POR INTEGRAR</span></div><div class="data-panel">${emptyState('Camadas ambientais em integração','A próxima fase irá acrescentar dados de solo, relevo, fogo activo e cobertura do solo, sempre com fonte e resolução identificadas.')}</div></section>
-      <section class="section-block" id="production"><div class="section-heading"><div><div class="eyebrow">CAMPANHAS E PRODUTIVIDADE</div><h2>Produção agrícola</h2><p>Área plantada, calendário, colheitas, produtividade e perdas.</p></div><span class="status-chip muted-chip">SEM DADOS DE CAMPO</span></div><div class="data-panel">${emptyState('Sem estimativas de produção validadas','A estimativa de colheita depende de parcelas delimitadas, cultura confirmada, calendário e observações de campo.')}</div></section>
+      <section class="section-block" id="production"><div class="section-heading"><div><div class="eyebrow">CAMPANHAS E PRODUTIVIDADE</div><h2>Produção agrícola</h2><p>Área plantada, calendário, colheitas, produtividade e perdas.</p></div><span class="status-chip muted-chip">SEM DADOS DE CAMPO</span></div><div class="data-panel">
+          <div class="eyebrow">REGIÕES ESTATÍSTICAS DE REFERÊNCIA</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0 18px">
+            ${(data.territory?.harvest_regions||[]).map(region=>`<article class="metric-card"><div class="metric-label">${esc(region.classification_version||'')}</div><div class="metric-value" style="font-size:20px">${esc(region.name)}</div><div class="metric-detail">${fmt(region.mapped_provinces,0)} províncias associadas</div></article>`).join('')}
+          </div>
+          <p class="source-note">As regiões Norte, Centro, Leste e Sul estão registadas como referência estatística histórica do ICAPP 2023/2024. A associação à nova divisão de 21 províncias permanece pendente de validação na publicação oficial mais recente.</p>
+          ${emptyState('Sem estimativas de produção validadas','A área, produção e produtividade só serão apresentadas após integração dos dados oficiais do INE ou registos de campo com fonte, ano e escala territorial identificados.')}
+        </div></section>
       <section class="section-block" id="reports"><div class="section-heading"><div><div class="eyebrow">PRESTAÇÃO DE CONTAS</div><h2>Balanços e relatórios</h2><p>Relatórios provinciais, municipais e por exploração.</p></div><span class="status-chip muted-chip">EM PREPARAÇÃO</span></div><div class="data-panel">${emptyState('Relatórios técnicos ainda não gerados','Os relatórios serão activados quando existirem séries suficientes e metodologias de balanço documentadas.')}</div></section>
       <div class="footer-note">Dados carregados através de serviço autenticado. O painel distingue observações medidas, estimativas de modelos e informação ainda não disponível.</div>
     </main>
