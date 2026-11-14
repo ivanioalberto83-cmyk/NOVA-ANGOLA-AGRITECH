@@ -64,7 +64,7 @@ export function renderGovernancePanel(data, error='') {
       <div class="gov-note">Densidade populacional exige população validada e área territorial oficial compatível. Não é calculada enquanto não houver dados demográficos e geográficos validados para o mesmo ano e unidade administrativa.</div>
     </section>
 
-    ${renderInstitutionRegistry(institutions)}
+    ${renderInstitutionRegistry(institutions, access.national_admin === true)}
     ${error ? `<div class="error-banner">${esc(error)}</div>` : ''}
   `;
 }
