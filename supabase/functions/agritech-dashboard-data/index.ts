@@ -65,6 +65,51 @@ Deno.serve(async (req: Request) => {
       where pilot_project_id = ${pilot.id}
     `;
 
+    const territoryProvinces = await sql`
+      select p.id, p.code, p.name, count(distinct m.id)::int as municipality_count
+      from angola_agritech.provinces p
+      left join angola_agritech.municipalities m on m.province_id = p.id
+      group by p.id, p.code, p.name
+      order by p.name
+    `;
+    const territoryCounts = await sql`
+      select
+        (select count(*)::int from angola_agritech.provinces) as province_count,
+        (select count(*)::int from angola_agritech.municipalities) as municipality_count,
+        (select count(*)::int from angola_agritech.communes) as commune_count
+    `;
+    const harvestRegions = await sql`
+      select hr.code, hr.name, hr.classification, hr.classification_version,
+             hr.metadata,
+             count(distinct phr.province_id) filter (where phr.mapping_status = 'confirmed')::int as mapped_provinces
+      from angola_agritech.harvest_regions hr
+      left join angola_agritech.province_harvest_regions phr on phr.harvest_region_id = hr.id
+      group by hr.id, hr.code, hr.name, hr.classification, hr.classification_version, hr.metadata
+      order by hr.name
+    `;
+    const productionSummary = await sql`
+      select cc.name as crop_name, cps.reporting_year,
+             sum(cps.area_sown_hectares)::float8 as area_sown_hectares,
+             sum(cps.area_harvested_hectares)::float8 as area_harvested_hectares,
+             sum(cps.production_tonnes)::float8 as production_tonnes,
+             count(*)::int as source_records,
+             bool_and(cps.validation_status = 'verified') as fully_verified
+      from angola_agritech.crop_production_statistics cps
+      join angola_agritech.crop_catalog cc on cc.id = cps.crop_id
+      group by cc.name, cps.reporting_year
+      order by cps.reporting_year desc, cc.name
+      limit 30
+    `;
+    const territory = {
+      ...territoryCounts[0],
+      provinces: territoryProvinces,
+      harvest_regions: harvestRegions,
+      production_summary: productionSummary,
+      municipality_data_status: Number(territoryCounts[0]?.municipality_count || 0) === 326 ? "complete_count_pending_name_validation" : "incomplete",
+      commune_data_status: Number(territoryCounts[0]?.commune_count || 0) === 378 ? "complete_count_pending_name_validation" : "incomplete",
+      region_mapping_status: "historical_reference_only_until_current_INE_mapping_is_verified",
+    };
+
     const bbox = Array.isArray(pilot.aoi_bbox) ? pilot.aoi_bbox : JSON.parse(String(pilot.aoi_bbox));
     const longitude = (Number(bbox[0]) + Number(bbox[2])) / 2;
     const latitude = (Number(bbox[1]) + Number(bbox[3])) / 2;
@@ -154,6 +199,7 @@ Deno.serve(async (req: Request) => {
         monitoring_goal: pilot.monitoring_goal,
         scene_candidates_registered: sceneCount[0]?.total ?? 0,
       },
+      territory,
       vegetation: vegetation.map((row) => ({
         ...row,
         statistics: row.statistics ?? {},
@@ -163,6 +209,8 @@ Deno.serve(async (req: Request) => {
         database_access: "Server-side, scoped to the active public pilot; no Agritech tables are exposed directly to the browser.",
         user_authentication: "Supabase Auth user JWT verified with getUser.",
         production_schema_changed: false,
+        administrative_data: "21 provinces seeded from Lei 14/24; municipality and commune records await verified official source imports.",
+        harvest_regions: "ICAPP 2023/2024 legacy statistical grouping; no new-boundary province mappings inferred.",
       },
     });
   } catch (error) {
