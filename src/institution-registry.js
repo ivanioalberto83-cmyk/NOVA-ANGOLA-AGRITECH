@@ -73,9 +73,12 @@ export function renderInstitutionRegistry(institutions = []) {
         <div>
           <div class="eyebrow">CADASTRO NACIONAL INSTITUCIONAL</div>
           <h2>Instituições e entidades públicas</h2>
-          <p>Consulta dos registos institucionais actualmente existentes na base de dados.</p>
+          <p>Consulta e registo de entidades públicas, com validação documental e controlo de estado.</p>
         </div>
-        <span class="status-chip">CONSULTA · SOMENTE LEITURA</span>
+        <div class="institution-actions">
+          <span class="status-chip">REGISTO AUTENTICADO</span>
+          <button type="button" class="primary institution-add-button" id="new-institution">+ Novo registo</button>
+        </div>
       </div>
       <div class="gov-stats">
         ${stat('Registos existentes', rows.length, 'Tabela institucional de emergência')}
@@ -102,5 +105,40 @@ export function renderInstitutionRegistry(institutions = []) {
         correspondem ao campo de integração actualmente existente e não constituem, por si só,
         homologação oficial.
       </div>
+      <dialog class="institution-dialog" id="institution-dialog" aria-labelledby="institution-dialog-title">
+        <form id="institution-form" class="institution-form">
+          <div class="institution-dialog-head">
+            <div><div class="eyebrow">CADASTRO NACIONAL</div><h3 id="institution-dialog-title">Novo registo institucional</h3></div>
+            <button type="button" class="institution-close" id="close-institution-dialog" aria-label="Fechar">×</button>
+          </div>
+          <p class="institution-form-intro">Preenche os dados identificativos. O registo será guardado como <b>Proposto</b> até à validação documental e aprovação competentes.</p>
+          <label>Nome oficial da instituição <span>*</span><input name="name" maxlength="200" required placeholder="Ex.: Ministério, instituto, comando ou hospital"/></label>
+          <div class="institution-form-grid">
+            <label>Categoria <span>*</span><select name="institution_type" required>
+              <option value="">Seleccionar categoria</option>
+              <option value="local_administration">Administração local</option>
+              <option value="police">Polícia</option>
+              <option value="civil_protection_fire">Protecção Civil e Bombeiros</option>
+              <option value="health_emergency">Emergência médica</option>
+              <option value="hospital">Hospital</option>
+              <option value="armed_forces">Forças Armadas</option>
+              <option value="red_cross">Cruz Vermelha</option>
+              <option value="maritime">Marítimo</option>
+              <option value="aviation">Aviação</option>
+              <option value="utilities">Serviços públicos essenciais</option>
+              <option value="other">Outra entidade</option>
+            </select></label>
+            <label>Âmbito territorial <span>*</span><select name="jurisdiction_level" required>
+              <option value="national">Nacional</option><option value="provincial">Provincial</option><option value="municipal">Municipal</option><option value="local">Local</option>
+            </select></label>
+          </div>
+          <label>Website oficial<input name="official_website" type="url" maxlength="500" placeholder="https://..."/></label>
+          <label>Fonte oficial / ligação documental<input name="official_source_url" type="url" maxlength="500" placeholder="https://..."/></label>
+          <label>Mandato / competência institucional<textarea name="mandate_notes" maxlength="2000" rows="3" placeholder="Descrição breve, baseada em fonte oficial."></textarea></label>
+          <label>Referência de acordo ou protocolo<input name="agreement_reference" maxlength="120" placeholder="Opcional — não representa aprovação"/></label>
+          <div class="institution-form-message" id="institution-form-message" role="status"></div>
+          <div class="institution-form-actions"><button type="button" class="secondary institution-cancel" id="cancel-institution">Cancelar</button><button type="submit" class="primary" id="save-institution">Guardar registo <span>→</span></button></div>
+        </form>
+      </dialog>
     </section>`;
 }
