@@ -24,3 +24,19 @@
 .gov-empty strong{font:700 12px Manrope,sans-serif;color:#536656}
 .gov-empty p{font-size:10px;line-height:1.6;margin:6px auto 0;max-width:560px;color:#8a968b}
 @media(max-width:760px){.gov-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.gov-stat{padding:12px}.gov-stat strong{font-size:21px}.gov-subpanel{padding:12px}.gov-table{min-width:620px}}
+
+.public-emergency{margin-top:22px;padding-top:18px;border-top:1px solid #edf0eb}
+.emergency-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.emergency-heading small{font-size:8px;letter-spacing:.14em;font-weight:800;color:#6e8d5b}
+.emergency-heading h2{font:800 17px Manrope;margin:4px 0;color:#193b2a}
+.emergency-heading>span{font-size:7px;letter-spacing:.1em;color:#829084;border:1px solid #e2e9df;border-radius:20px;padding:6px 8px}
+.emergency-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.emergency-contact{display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none;background:#f5f8f3;border:1px solid #e3eadf;border-radius:9px;padding:11px;color:#304b38}
+.emergency-contact span{font-size:9px;line-height:1.35}
+.emergency-contact strong{font:800 18px Manrope;color:#1c4930}
+.emergency-contact:hover{border-color:#9cbe7b;background:#eef5e8}
+.emergency-warning{font-size:9px;line-height:1.55;color:#8a6a35;background:#fff8e9;border-left:3px solid #e8b64f;padding:10px;margin:10px 0}
+.emergency-agencies{display:grid;gap:5px;font-size:9px;color:#526456;line-height:1.5}
+.emergency-agencies b{font-weight:800}
+.emergency-agencies span{color:#89958b}
+@media(max-width:420px){.emergency-grid{grid-template-columns:1fr}.emergency-contact{padding:10px 12px}}
