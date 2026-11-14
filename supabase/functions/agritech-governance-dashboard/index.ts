@@ -36,11 +36,13 @@ Deno.serve(async(req:Request)=>{
       }).filter(Boolean);
       return clauses.length?sql`(${sql.join(clauses,sql` OR `)})`:sql`false`;
     };
-    const [provinceCount,municipalityCount,communeCount]=await Promise.all([
+    const [provinceCount,municipalityCount,communeCount,provinceRows]=await Promise.all([
       sql`select count(*)::int as total from angola_agritech.provinces`,
       sql`select count(*)::int as total from angola_agritech.municipalities`,
-      sql`select count(*)::int as total from angola_agritech.communes`
+      sql`select count(*)::int as total from angola_agritech.communes`,
+      sql`select id,code,name from angola_agritech.provinces order by name`
     ]);
+    const provinceList=provinceRows.map((p:any)=>({id:p.id,code:p.code,name:p.name}));
     const result:any={
       ok:true,generated_at:new Date().toISOString(),
       access:{operational:operationalAccess,national_admin:nationalAdmin,territorial_scopes:territorialScopes,institution_assignments:institutionAssignments,
