@@ -55,7 +55,7 @@ function renderTable(rows) {
     </div>`;
 }
 
-export function renderInstitutionRegistry(institutions = []) {
+export function renderInstitutionRegistry(institutions = [], canCreate = false) {
   const rows = Array.isArray(institutions) ? institutions : [];
   const byCategory = rows.reduce((counts, row) => {
     const key = row.type || 'uncategorised';
@@ -75,10 +75,7 @@ export function renderInstitutionRegistry(institutions = []) {
           <h2>Instituições e entidades públicas</h2>
           <p>Consulta e registo de entidades públicas, com validação documental e controlo de estado.</p>
         </div>
-        <div class="institution-actions">
-          <span class="status-chip">REGISTO AUTENTICADO</span>
-          <button type="button" class="primary institution-add-button" id="new-institution">+ Novo registo</button>
-        </div>
+        ${canCreate ? `<div class="institution-actions"><span class="status-chip">REGISTO AUTENTICADO</span><button type="button" class="primary institution-add-button" id="new-institution">+ Novo registo</button></div>` : '<span class="status-chip">CONSULTA · ACESSO CONTROLADO</span>'}
       </div>
       <div class="gov-stats">
         ${stat('Registos existentes', rows.length, 'Tabela institucional de emergência')}
@@ -105,7 +102,7 @@ export function renderInstitutionRegistry(institutions = []) {
         correspondem ao campo de integração actualmente existente e não constituem, por si só,
         homologação oficial.
       </div>
-      <dialog class="institution-dialog" id="institution-dialog" aria-labelledby="institution-dialog-title">
+      ${canCreate ? `      <dialog class="institution-dialog" id="institution-dialog" aria-labelledby="institution-dialog-title">
         <form id="institution-form" class="institution-form">
           <div class="institution-dialog-head">
             <div><div class="eyebrow">CADASTRO NACIONAL</div><h3 id="institution-dialog-title">Novo registo institucional</h3></div>
@@ -139,6 +136,6 @@ export function renderInstitutionRegistry(institutions = []) {
           <div class="institution-form-message" id="institution-form-message" role="status"></div>
           <div class="institution-form-actions"><button type="button" class="secondary institution-cancel" id="cancel-institution">Cancelar</button><button type="submit" class="primary" id="save-institution">Guardar registo <span>→</span></button></div>
         </form>
-      </dialog>
+      </dialog>` : ''}
     </section>`;
 }
