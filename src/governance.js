@@ -1,3 +1,5 @@
+import { renderInstitutionRegistry } from './institution-registry.js';
+
 const esc = (v = '') => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = v => v === null || v === undefined ? '—' : Number(v).toLocaleString('pt-PT');
 const date = v => v ? new Date(v).toLocaleDateString('pt-PT') : '—';
@@ -62,11 +64,7 @@ export function renderGovernancePanel(data, error='') {
       <div class="gov-note">Densidade populacional exige população validada e área territorial oficial compatível. Não é calculada enquanto não houver dados demográficos e geográficos validados para o mesmo ano e unidade administrativa.</div>
     </section>
 
-    <section class="section-block gov-section" id="institutions">
-      <div class="section-heading"><div><div class="eyebrow">ARTICULAÇÃO INTERINSTITUCIONAL</div><h2>Instituições e integração com o Estado</h2><p>Registo de entidades, situação de homologação e canais de integração.</p></div><span class="status-chip">REGISTO INSTITUCIONAL</span></div>
-      ${table(institutions,[{key:'code',label:'Código'},{key:'name',label:'Instituição'},{key:'type',label:'Área',render:r=>label(r.type)},{key:'jurisdiction',label:'Jurisdição',render:r=>label(r.jurisdiction)},{key:'integration_status',label:'Integração',render:r=>label(r.integration_status)},{key:'agreement_reference',label:'Acordo',render:r=>r.agreement_reference||'Não registado'}],'Sem instituições registadas','Não foram encontrados registos institucionais.')}
-      <div class="gov-note">O registo de uma instituição não significa que exista ligação técnica ou autorização governamental. Integrações reais exigem acordo, avaliação de segurança, testes em ambiente controlado e aprovação formal da entidade responsável.</div>
-    </section>
+    ${renderInstitutionRegistry(institutions)}
     ${error ? `<div class="error-banner">${esc(error)}</div>` : ''}
   `;
 }
