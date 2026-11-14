@@ -111,7 +111,7 @@ function weatherPanel(weather) {
 }
 function renderDashboard(error='') {
   const data=dashboardData||{};
-  provinces = (data.territory?.provinces || []).map(item => item.name);
+  provinces = (governanceData?.territorial_catalogue?.province_list || data.territory?.provinces || []).map(item => typeof item === 'string' ? item : item.name);
   const pilot=data.pilot||{};
   const veg=data.vegetation||[];
   const latest=veg[0]||null;
@@ -136,7 +136,7 @@ function renderDashboard(error='') {
           <div class="map-aside-head"><small>LOCALIZAÇÃO EM FOCO</small><strong>Malanje</strong><span>Projecto-piloto · Mandioca</span></div>
           <div class="map-stat"><span>Identificador</span><b>NAAT-MAL-CASSAVA-001</b></div>
           <div class="map-stat"><span>Estado da AOI</span><b class="warning-text">${esc(pilot.aoi_status||'provisional')}</b></div>
-          <div class="map-stat"><span>Limites administrativos</span><b>${fmt(data.territory?.province_count,0)} províncias · ${fmt(data.territory?.municipality_count,0)} municípios · ${fmt(data.territory?.commune_count,0)} comunas</b></div>
+          <div class="map-stat"><span>Limites administrativos</span><b>${fmt(governanceData?.territorial_catalogue?.provinces ?? data.territory?.province_count,0)} províncias · ${fmt(governanceData?.territorial_catalogue?.municipalities ?? data.territory?.municipality_count,0)} municípios · ${fmt(governanceData?.territorial_catalogue?.communes ?? data.territory?.commune_count,0)} comunas</b></div>
           <div class="map-warning">A área assinalada é uma caixa geográfica provisória. Não representa uma parcela agrícola validada.</div>
           <div class="map-legend"><span><i class="legend-dot"></i> Centro aproximado do piloto</span><span><i class="legend-box"></i> AOI provisória</span></div>
           <div class="map-source">Limites provinciais de referência: serviço cartográfico ArcGIS baseado na Lei n.º 14/24 (publicado em 2025). A fonte é externa e carece de validação oficial antes de uso cadastral. Contorno nacional: geoBoundaries ADM0.</div>
