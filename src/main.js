@@ -186,6 +186,40 @@ function renderDashboard(error='') {
     </main>
   </div>`);
   document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;governanceData=null;governanceError='';renderLogin();});
+  const institutionDialog=document.querySelector('#institution-dialog');
+  const institutionForm=document.querySelector('#institution-form');
+  const institutionMessage=document.querySelector('#institution-form-message');
+  document.querySelector('#new-institution')?.addEventListener('click',()=>institutionDialog?.showModal());
+  const closeInstitutionDialog=()=>institutionDialog?.close();
+  document.querySelector('#close-institution-dialog')?.addEventListener('click',closeInstitutionDialog);
+  document.querySelector('#cancel-institution')?.addEventListener('click',closeInstitutionDialog);
+  institutionForm?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!session?.access_token){if(institutionMessage)institutionMessage.textContent='A sessão expirou. Inicia novamente a sessão.';return;}
+    const saveButton=document.querySelector('#save-institution');
+    const formData=new FormData(institutionForm);
+    const payload=Object.fromEntries(formData.entries());
+    for(const key of Object.keys(payload))if(typeof payload[key]==='string')payload[key]=payload[key].trim();
+    if(saveButton){saveButton.disabled=true;saveButton.textContent='A guardar…';}
+    if(institutionMessage)institutionMessage.textContent='';
+    try{
+      const {data,error}=await supabase.functions.invoke('agritech-register-institution',{body:payload});
+      if(error)throw new Error(error.message||'Não foi possível guardar o registo.');
+      if(data?.error)throw new Error(data.error);
+      institutionForm.reset();
+      closeInstitutionDialog();
+      const governance=await supabase.functions.invoke('agritech-governance-dashboard',{body:{}});
+      if(governance.error)throw new Error('Registo guardado, mas a lista não foi actualizada: '+governance.error.message);
+      governanceData=governance.data;
+      renderDashboard();
+      showToast('Registo institucional guardado com estado «Proposto».');
+    }catch(error){
+      if(institutionMessage)institutionMessage.textContent=error.message||'Erro ao guardar o registo.';
+    }finally{
+      const currentButton=document.querySelector('#save-institution');
+      if(currentButton){currentButton.disabled=false;currentButton.innerHTML='Guardar registo <span>→</span>';}
+    }
+  });
   document.querySelector('#refresh').addEventListener('click',loadDashboard);
   document.querySelector('#test-chirps').addEventListener('click',runChirpsDiagnostics);
   document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports','gov-admin':'gov-administration','civil-protection':'civil-protection',demography:'demography',institutions:'institutions'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
