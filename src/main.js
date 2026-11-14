@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
+import { renderGovernancePanel } from './governance.js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -12,6 +13,8 @@ const app = document.querySelector('#app');
 let session = null;
 let busy = false;
 let dashboardData = null;
+let governanceData = null;
+let governanceError = ''; 
 let activeModule = 'national';
 let provinceBoundaryLayer = null;
 let nationalBoundaryLayer = null;
@@ -29,7 +32,11 @@ const modules = [
   ['health','✳','Pragas e doenças'],
   ['environment','♧','Solo e ambiente'],
   ['production','▥','Produção agrícola'],
-  ['reports','▤','Balanços e relatórios']
+  ['reports','▤','Balanços e relatórios'],
+  ['gov-admin','▦','Administração'],
+  ['civil-protection','⚠','Protecção Civil'],
+  ['demography','♙','Demografia'],
+  ['institutions','⌘','Instituições']
 ];
 
 const icon = '<span class="brand-mark">N<span>+</span></span>';
@@ -152,13 +159,14 @@ function renderDashboard(error='') {
           ${emptyState('Sem estimativas de produção validadas','A área, produção e produtividade só serão apresentadas após integração dos dados oficiais do INE ou registos de campo com fonte, ano e escala territorial identificados.')}
         </div></section>
       <section class="section-block" id="reports"><div class="section-heading"><div><div class="eyebrow">PRESTAÇÃO DE CONTAS</div><h2>Balanços e relatórios</h2><p>Relatórios provinciais, municipais e por exploração.</p></div><span class="status-chip muted-chip">EM PREPARAÇÃO</span></div><div class="data-panel">${emptyState('Relatórios técnicos ainda não gerados','Os relatórios serão activados quando existirem séries suficientes e metodologias de balanço documentadas.')}</div></section>
+      ${renderGovernancePanel(governanceData, governanceError)}
       <div class="footer-note">Dados carregados através de serviço autenticado. O painel distingue observações medidas, estimativas de modelos e informação ainda não disponível.</div>
     </main>
   </div>`);
   document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;renderLogin();});
   document.querySelector('#refresh').addEventListener('click',loadDashboard);
   document.querySelector('#test-chirps').addEventListener('click',runChirpsDiagnostics);
-  document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
+  document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports','gov-admin':'gov-administration','civil-protection':'civil-protection',demography:'demography',institutions:'institutions'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
   document.querySelector('#province-filter').addEventListener('change',e=>selectProvinceOnMap(e.target.value));
   initMap(pilot);
 }
@@ -283,6 +291,14 @@ async function loadDashboard() {
     const {data,error}=await supabase.functions.invoke('agritech-dashboard-data',{body:{}});
     if(error){let message=error.message;try{if(error.context?.json)message=JSON.stringify(await error.context.json());}catch{}throw new Error(message);}
     dashboardData=data;
+    try {
+      const governance = await supabase.functions.invoke('agritech-governance-dashboard',{body:{}});
+      if (governance.error) throw governance.error;
+      governanceData = governance.data;
+      governanceError = '';
+    } catch (governanceFailure) {
+      governanceError = governanceFailure?.message || 'Não foi possível carregar os dados de governação.';
+    }
     busy=false;
     renderDashboard();
   }catch(e){
