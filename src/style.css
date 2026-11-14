@@ -51,3 +51,24 @@
 .institution-status.status-under_review{background:#eef4fb;color:#4b6685;border:1px solid #dce7f3}
 .institution-status.status-verified,.institution-status.status-approved{background:#eff7e9;color:#426b3d;border:1px solid #dcebd0}
 .institution-status.status-inactive,.institution-status.status-rejected{background:#f8eeee;color:#8a4d4d;border:1px solid #efdada}
+
+/* Institutional registration form */
+.institution-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.institution-add-button{height:36px;padding:0 14px;font-size:10px}
+.institution-dialog{width:min(620px,calc(100vw - 28px));max-height:min(88vh,820px);padding:0;border:1px solid #dfe8dc;border-radius:15px;box-shadow:0 24px 80px #10291f40;color:#263a2d}
+.institution-dialog::backdrop{background:#0b2018a8;backdrop-filter:blur(3px)}
+.institution-form{display:grid;gap:13px;padding:22px;overflow:auto;max-height:88vh}
+.institution-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.institution-dialog-head h3{font:800 20px Manrope,sans-serif;margin:5px 0;color:#193b2a}
+.institution-close{border:0;background:#f0f4ee;color:#607264;border-radius:8px;width:32px;height:32px;font-size:22px;cursor:pointer}
+.institution-form-intro{font-size:10px;line-height:1.6;color:#7b887e;margin:0 0 2px}
+.institution-form label{display:grid;gap:6px;font-size:10px;font-weight:700;color:#506154}
+.institution-form label>span{display:inline;color:#a66b2a}
+.institution-form input,.institution-form select,.institution-form textarea{width:100%;min-width:0;border:1px solid #dce5da;border-radius:8px;background:#fff;padding:11px 12px;color:#34473a;font:11px 'DM Sans',sans-serif;outline:none}
+.institution-form input:focus,.institution-form select:focus,.institution-form textarea:focus{border-color:#8eae6e;box-shadow:0 0 0 3px #b5dc7830}
+.institution-form textarea{resize:vertical;line-height:1.5}
+.institution-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.institution-form-message{min-height:16px;color:#a74737;font-size:10px;line-height:1.5}
+.institution-form-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:4px;border-top:1px solid #edf1eb}
+.institution-cancel{height:38px;background:#f1f4ef;color:#536456}
+@media(max-width:520px){.institution-actions{width:100%;justify-content:space-between}.institution-form{padding:17px}.institution-form-grid{grid-template-columns:1fr}.institution-form-actions{position:sticky;bottom:0;background:#fff;padding:12px 0 0}}
