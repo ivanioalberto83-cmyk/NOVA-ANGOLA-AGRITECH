@@ -163,7 +163,7 @@ function renderDashboard(error='') {
       <div class="footer-note">Dados carregados através de serviço autenticado. O painel distingue observações medidas, estimativas de modelos e informação ainda não disponível.</div>
     </main>
   </div>`);
-  document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;renderLogin();});
+  document.querySelector('#logout').addEventListener('click',async()=>{await supabase.auth.signOut();session=null;dashboardData=null;governanceData=null;governanceError='';renderLogin();});
   document.querySelector('#refresh').addEventListener('click',loadDashboard);
   document.querySelector('#test-chirps').addEventListener('click',runChirpsDiagnostics);
   document.querySelectorAll('[data-module]').forEach(btn=>btn.addEventListener('click',()=>{activeModule=btn.dataset.module;const target={national:null,territory:'territory',satellite:'satellite',climate:'climate',water:'water',health:'health',environment:'environment',production:'production',reports:'reports','gov-admin':'gov-administration','civil-protection':'civil-protection',demography:'demography',institutions:'institutions'}[activeModule];renderDashboard();if(target)document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});else window.scrollTo({top:0,behavior:'smooth'});}));
@@ -311,7 +311,7 @@ async function start(){
   if(!configured)return renderSetup();
   const {data}=await supabase.auth.getSession();
   session=data.session;
-  supabase.auth.onAuthStateChange((_event,next)=>{session=next;if(!next){dashboardData=null;renderLogin();}});
+  supabase.auth.onAuthStateChange((_event,next)=>{session=next;if(!next){dashboardData=null;governanceData=null;governanceError='';renderLogin();}});
   if(session)await loadDashboard();else renderLogin();
 }
 start();
