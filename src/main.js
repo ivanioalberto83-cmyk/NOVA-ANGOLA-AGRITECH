@@ -63,11 +63,13 @@ async function loadPublicEmergencyDirectory() {
     if (error) throw error;
     const contacts = Array.isArray(data?.contacts) ? data.contacts : [];
     const institutions = Array.isArray(data?.institutions) ? data.institutions : [];
+    const localSummary = data?.local_administration_summary || {};
     target.innerHTML = `
       <div class="emergency-heading"><div><small>ACESSO PÚBLICO · ANGOLA</small><h2>Contactos de emergência</h2></div><span>DIRECTÓRIO NACIONAL</span></div>
       <div class="emergency-grid">${contacts.map(c => `<a class="emergency-contact" href="tel:${esc(c.dial_number)}"><span>${esc(c.service_name)}</span><strong>${esc(c.dial_number)}</strong></a>`).join('')}</div>
       <p class="emergency-warning">${esc(data?.warning || 'A disponibilidade operacional deve ser confirmada junto das autoridades competentes.')}</p>
-      <div class="emergency-agencies"><b>Entidades no cadastro institucional</b><span>${institutions.map(i => esc(i.name) + ' · ' + esc(i.integration_status.replaceAll('_',' '))).join(' | ')}</span></div>`;
+      <div class="emergency-agencies"><b>Entidades nacionais no cadastro</b><span>${institutions.map(i => esc(i.name) + ' · ' + esc(i.integration_status.replaceAll('_',' '))).join(' | ')}</span></div>
+      <div class="emergency-agencies"><b>Administrações territoriais pré-registadas</b><span>${esc(localSummary.provincial_administrations || 0)} governos provinciais · ${esc(localSummary.municipal_administrations || 0)} administrações municipais. Todas aguardam validação institucional.</span></div>`;
     if (!contacts.length) target.innerHTML = '<p class="muted">Não existem contactos públicos publicados.</p>';
   } catch (error) {
     target.innerHTML = '<p class="muted">O directório público não está disponível neste momento. Em caso de emergência, utiliza os canais oficiais conhecidos da tua região.</p>';
